@@ -82,7 +82,7 @@ In plain terms: the additional value your agent unlocks at the constraint must m
 
 ## What's in this data pack
 
-All files are CSVs in the `data/` directory. Schemas are in `data/*_schema.md`.
+All files are CSVs in the `data_generator/output` directory. Schemas are in `data_generator/output/*_schema.md`.
 
 | File | What it is | Why you care |
 |---|---|---|
