@@ -8,7 +8,7 @@
 
 You are a small team of engineers and product managers working with **Crestmount Refinery**, a fictional mid-sized refinery in West Texas that processes ~100,000 barrels per day at design capacity.
 
-The plant's maintenance organisation is in trouble. Notifications about asset problems — from operators on the floor, from sensors, from inspection rounds — arrive faster than the planning team can process them. The backlog is growing. Critical work is ageing in the queue. Unplanned downtime events are running at 1.5× target. The plant manager has asked SAP to propose an intervention before the next turnaround.
+The plant's maintenance organisation is in trouble. Notifications about asset problems — from operators on the floor, from sensors, from inspection rounds — arrive faster than the planning team can process them. The backlog is growing. Critical work is ageing in the queue. Unplanned downtime events are running at 1.5× target. The plant manager has asked you the team to propose an intervention before the next turnaround.
 
 In yesterday's session you learned to see this as a system problem. The constraint is not the crews. It is not the spare parts. It is not the schedule. **The constraint is the planner** — a small team of six performing cognitively-intensive judgment work that paces the entire pipeline.
 
