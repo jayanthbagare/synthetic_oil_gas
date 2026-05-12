@@ -543,14 +543,19 @@ CREW_SKILL_PROFILES: list[list[str]] = [
 
 # ---------------------------------------------------------------------------
 # Downtime cost rates by criticality tier (USD/hour)
+# Calibrated so rolling 12-month total ≈ $25–35M across the dataset.
+# T1 rate reflects "$1–5M/day" plant-level impact (÷24 = $42k–$208k/hour).
 # ---------------------------------------------------------------------------
 
 DOWNTIME_COST_RATE: dict[int, tuple[float, float]] = {
-    1: (200_000.0, 500_000.0),
-    2: (50_000.0,  200_000.0),
-    3: (10_000.0,  50_000.0),
-    4: (1_000.0,   10_000.0),
-    5: (0.0,       1_000.0),
+    # Calibrated so rolling 12-month total ≈ $25–35M across ~600 failures/year.
+    # T1: each failure affects one asset, typically causing partial rather than
+    # total production disruption. Full-plant $1-5M/day ÷ 30 T1 assets ÷ 24h ≈ per-asset rate.
+    1: (20_000.0,   80_000.0),
+    2:  (5_000.0,   25_000.0),
+    3:  (1_000.0,    5_000.0),
+    4:    (200.0,    1_000.0),
+    5:      (0.0,      200.0),
 }
 
 
