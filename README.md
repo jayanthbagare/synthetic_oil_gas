@@ -10,9 +10,61 @@ You are a small team of engineers and product managers working with **Crestmount
 
 The plant's maintenance organisation is in trouble. Notifications about asset problems — from operators on the floor, from sensors, from inspection rounds — arrive faster than the planning team can process them. The backlog is growing. Critical work is ageing in the queue. Unplanned downtime events are running at 1.5× target. The plant manager has asked you the team to propose an intervention before the next turnaround.
 
-In yesterday's session you learned to see this as a system problem. The constraint is not the crews. It is not the spare parts. It is not the schedule. **The constraint is the planner** — a small team of six performing cognitively-intensive judgment work that paces the entire pipeline.
+See this as a system problem. The constraint is not the crews. It is not the spare parts. It is not the schedule. **The constraint is the planner** — a small team of six performing cognitively-intensive judgment work that paces the entire pipeline.
 
 Today, you build the intervention.
+
+```
+~1,900 notifications / week
+                          inflow
+                            │
+                            ▼
+        ┌─────────────────────────┐
+        │   Operators             │
+        │   Sensors               │
+        │   Inspection rounds     │
+        │   Predictive models     │
+        └────────────┬────────────┘
+                     │
+                     ▼
+        ┌─────────────────────────┐
+        │        QUEUE            │     backlog: ~2,000 open
+        │  (open notifications)   │     growing: ~600 / week
+        │                         │     oldest:  60–90 days
+        └────────────┬────────────┘
+                     │
+                     ▼
+        ╔═════════════════════════╗
+        ║       PLANNER           ║     ★ THE CONSTRAINT
+        ║       (6 people)        ║
+        ║                         ║     capacity: ~1,260 / week
+        ║   triage · classify ·   ║     avg time: ~30 min / item
+        ║   scope · parts · crew  ║
+        ║   · permits · schedule  ║
+        ╚════════════╤════════════╝
+                     │
+                     ▼
+        ┌─────────────────────────┐
+        │       Scheduler         │
+        │  (fit into ops window)  │
+        └────────────┬────────────┘
+                     │
+                     ▼
+        ┌─────────────────────────┐
+        │         Crew            │
+        │  (execute with parts    │
+        │   and permits)          │
+        └────────────┬────────────┘
+                     │
+                     ▼
+        ┌─────────────────────────┐
+        │        Closure          │
+        │  (record + feed back    │
+        │   to asset history)     │
+        └─────────────────────────┘
+
+       ────►  throughput is limited at the planner  ◄────
+```
 
 ---
 
