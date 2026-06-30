@@ -83,6 +83,9 @@ In plain terms: the additional value your agent unlocks at the constraint must m
 ## What's in this data pack
 
 All files are CSVs in the `data_generator/output` directory. Schemas are in `data_generator/output/*_schema.md`.
+A queryable SQLite database (`crestmount.db`) and a Streamlit dashboard are also provided — see `data_generator/README.md`.
+
+### Core entities
 
 | File | What it is | Why you care |
 |---|---|---|
@@ -95,6 +98,16 @@ All files are CSVs in the `data_generator/output` directory. Schemas are in `dat
 | `notifications.csv` | **~12,000 notifications** (10,000 historical + 2,000 current open backlog) | **This is your main input.** Free-text descriptions, observed severity, source, ground-truth columns for evaluation |
 | `work_orders.csv` | ~8,500 work orders, mostly closed | Use as training-by-example for what a "good" WO looks like, and to measure historical throughput |
 | `failure_events.csv` | ~1,200 actual failures with root causes and downtime cost | Use to calibrate avoided-downtime calculations |
+
+### Domain datasets
+
+| File | What it is | Why you care |
+|---|---|---|
+| `sensors.csv` | ~940 sensors (vibration, temperature, pressure, flow) on rotating/static equipment | Live condition data — the input your predictive-maintenance agent reads |
+| `sensor_readings.csv` | ~680,000 hourly readings with **pre-failure anomaly ramps** | The learnable signal: anomalies escalate in the 24h before each failure event |
+| `asset_connections.csv` | ~1,500 directed edges in the P&ID process-flow graph | Failure-cascade analysis — a failing feed pump degrades everything downstream |
+| `weather.csv` | 730 days of West Texas weather (storms, freezes, dust) | Drives equipment stress (heat→transformers, freeze→piping) and permit feasibility (storms→no work at height) |
+| `production.csv` | 730 days of barrel output and product yields (gasoline, diesel, jet fuel, …) | Converts maintenance decisions into business impact: lost barrels × refining margin = revenue at risk |
 
 ### Two columns you can use only for evaluation
 
@@ -211,6 +224,33 @@ Defend the throughput equation with numbers and visible assumptions:
 - **Data:** you may not pull external data sources. Everything you need is in this pack.
 - **Code:** working code is encouraged but not required. A clear architecture diagram + traces of agent behaviour on 5–10 notifications + the throughput math is enough.
 - **Honesty:** the panel will ask hard questions. The team that says "we don't know" honestly does better than the team that bluffs.
+
+---
+
+## Starter agent framework & dashboard
+
+The repo ships with a **reference agent implementation** and an **evaluation harness** so you can skip the plumbing and focus on improving the decisions. They are not the answer — they are a baseline to beat.
+
+```bash
+# Generate data + build the queryable SQLite DB
+python data_generator/generate_data.py --seed 42 --output-dir ./output --build-db
+
+# Run the reference agent pipeline + evaluation
+python data_generator/run_agents.py --db ./output/crestmount.db --run-date 2026-06-30
+
+# Launch the bottleneck dashboard
+streamlit run data_generator/dashboard/app.py -- --db ./output/crestmount.db
+```
+
+What's included (see `data_generator/README.md` for full details):
+
+- **`TriageAgent`** — scores & prioritises open notifications; predicts true severity from raw text (catches the 15% noisy `observed_severity`).
+- **`ContextGatherer`** — enriches a notification with asset history, recent failures, live sensor anomalies, downstream (P&ID) impact, required parts, and weather.
+- **`PlannerAssistant`** — recommends an action (`convert_to_wo` / `reject_false_positive` / `reject_duplicate` / `defer` / `escalate`) with a rationale and suggested crew/parts. Exposes an `llm_decide` hook so you can swap in your model without touching the plumbing.
+- **`Evaluator`** — scores agent outputs against the ground-truth columns: severity MAE, precision@K for critical surfacing, and false-positive / duplicate F1.
+- **`RefineryDB`** — a SQLite layer over all 14 tables with foreign keys and indexes, so your agent queries relational data instead of juggling DataFrames.
+
+**Baseline numbers** (rule-based, seed 42): severity MAE ≈ 1.0 (69% within ±1), false-positive F1 ≈ 0.46, duplicate F1 ≈ 0.82. Your job is to beat these — especially the false-positive precision, where an over-confident rejection of a real failure is costly.
 
 ---
 

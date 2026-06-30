@@ -12,6 +12,7 @@ from datetime import date
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 from generators.assets import generate_assets
 from generators.operations_calendar import generate_operations_calendar
@@ -22,14 +23,27 @@ from generators.planners import generate_planners
 from generators.notifications import generate_notifications
 from generators.work_orders import generate_work_orders
 from generators.failures import generate_failures
+from generators.weather import generate_weather
+from generators.production import generate_production
+from generators.asset_connectivity import generate_asset_connections
+from generators.sensors import generate_sensors
 from generators.common import make_rng
+from infra.config import load_config
+from infra.logging_setup import configure_logging, get_logger
+from infra.db import build_database
 
 
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Generate Crestmount Refinery synthetic data")
-    p.add_argument("--seed", type=int, default=42, help="Master RNG seed (default 42)")
-    p.add_argument("--output-dir", type=Path, default=Path("./output"),
-                   help="Directory for generated CSVs (default ./output)")
+    p.add_argument("--seed", type=int, default=None, help="Master RNG seed (overrides config)")
+    p.add_argument("--output-dir", type=Path, default=None,
+                   help="Directory for generated CSVs (overrides config)")
+    p.add_argument("--config", type=str, default=None,
+                   help="Path to a YAML config file (merged over defaults)")
+    p.add_argument("--build-db", action="store_true",
+                   help="Build a SQLite DB from the generated CSVs")
+    p.add_argument("--no-sensors", action="store_true",
+                   help="Skip the (large) sensor telemetry dataset")
     return p.parse_args()
 
 
@@ -190,6 +204,11 @@ def _write_summary(dfs: dict, output_dir: Path, run_date: date) -> str:
         f"| notifications (open backlog) | {n_open} |",
         f"| work_orders | {len(work_orders)} |",
         f"| failure_events | {len(failures)} |",
+        f"| sensors | {len(dfs.get('sensors', pd.DataFrame()))} |",
+        f"| sensor_readings | {len(dfs.get('sensor_readings', pd.DataFrame()))} |",
+        f"| asset_connections | {len(dfs.get('asset_connections', pd.DataFrame()))} |",
+        f"| weather | {len(dfs.get('weather', pd.DataFrame()))} |",
+        f"| production | {len(dfs.get('production', pd.DataFrame()))} |",
         "",
         "## The bottleneck in numbers",
         "",
@@ -298,50 +317,77 @@ def _write_summary(dfs: dict, output_dir: Path, run_date: date) -> str:
 
 def main() -> None:
     args = _parse_args()
-    output_dir: Path = args.output_dir
+
+    # ---- config + logging ---------------------------------------------- #
+    cfg = load_config(args.config)
+    if args.seed is not None:
+        cfg.override(seed=args.seed)
+    if args.output_dir is not None:
+        cfg.override(output_dir=str(args.output_dir))
+    seed = cfg.seed
+    output_dir = Path(cfg.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    run_date = date.today()
-    master_rng = np.random.default_rng(args.seed)
+    configure_logging(cfg.get("logging.level", "INFO"), cfg.get("logging.format", "structured"))
+    log = get_logger("generator")
 
-    print(f"Crestmount Refinery data generator — seed={args.seed}, run_date={run_date}")
+    run_date = date.today()
+    master_rng = np.random.default_rng(seed)
+
+    log.info("Crestmount Refinery data generator starting",
+             extra={"seed": seed, "entity": "all", "phase": "start"})
     t0 = time.perf_counter()
 
     # ------------------------------------------------------------------ #
     # Phase 1: Independent entities
     # ------------------------------------------------------------------ #
-    print("  Generating assets …")
+    log.info("Generating assets", extra={"phase": "assets"})
     assets_df = generate_assets(make_rng(master_rng, 0), run_date)
     assets_df.to_csv(output_dir / "assets.csv", index=False)
 
-    print("  Generating operations calendar …")
+    log.info("Generating operations calendar", extra={"phase": "calendar"})
     cal_df = generate_operations_calendar(make_rng(master_rng, 1), run_date)
     cal_df.to_csv(output_dir / "operations_calendar.csv", index=False)
 
-    print("  Generating spare parts …")
+    log.info("Generating spare parts", extra={"phase": "parts"})
     parts_df = generate_parts(make_rng(master_rng, 2))
     parts_df.to_csv(output_dir / "spare_parts.csv", index=False)
 
-    print("  Generating crews …")
+    log.info("Generating crews", extra={"phase": "crews"})
     crews_df = generate_crews(make_rng(master_rng, 3))
     crews_df.to_csv(output_dir / "crews.csv", index=False)
 
-    print("  Generating permits …")
+    log.info("Generating permits", extra={"phase": "permits"})
     permits_df = generate_permits()
     permits_df.to_csv(output_dir / "permits.csv", index=False)
 
-    print("  Generating planners …")
+    log.info("Generating planners", extra={"phase": "planners"})
     planners_df = generate_planners()
     planners_df.to_csv(output_dir / "planners.csv", index=False)
+
+    # ---- Phase 2 new datasets (independent of notifications/WOs) ------- #
+    log.info("Generating weather", extra={"phase": "weather"})
+    weather_df = generate_weather(make_rng(master_rng, 7), run_date, cfg.section("weather"))
+    weather_df.to_csv(output_dir / "weather.csv", index=False)
+
+    log.info("Generating production", extra={"phase": "production"})
+    production_df = generate_production(make_rng(master_rng, 8), cal_df, run_date,
+                                       cfg.section("production"))
+    production_df.to_csv(output_dir / "production.csv", index=False)
+
+    log.info("Generating asset connectivity graph", extra={"phase": "connectivity"})
+    connectivity_df = generate_asset_connections(make_rng(master_rng, 9), assets_df,
+                                                 cfg.section("asset_connectivity"))
+    connectivity_df.to_csv(output_dir / "asset_connections.csv", index=False)
 
     # ------------------------------------------------------------------ #
     # Phase 2: Dependent entities
     # ------------------------------------------------------------------ #
-    print("  Generating notifications …")
+    log.info("Generating notifications", extra={"phase": "notifications"})
     notifs_df = generate_notifications(make_rng(master_rng, 4), assets_df, planners_df, cal_df, run_date)
     notifs_df.to_csv(output_dir / "notifications.csv", index=False)
 
-    print("  Generating work orders …")
+    log.info("Generating work orders", extra={"phase": "work_orders"})
     wo_df = generate_work_orders(make_rng(master_rng, 5), notifs_df, assets_df, planners_df,
                                  crews_df, parts_df, permits_df, run_date)
     wo_df.to_csv(output_dir / "work_orders.csv", index=False)
@@ -351,9 +397,24 @@ def main() -> None:
     notifs_df["converted_to_wo_id"] = notifs_df["notification_id"].map(notif_to_wo)
     notifs_df.to_csv(output_dir / "notifications.csv", index=False)
 
-    print("  Generating failure events …")
+    log.info("Generating failure events", extra={"phase": "failures"})
     failures_df = generate_failures(make_rng(master_rng, 6), wo_df, notifs_df, assets_df)
     failures_df.to_csv(output_dir / "failure_events.csv", index=False)
+
+    # ------------------------------------------------------------------ #
+    # Phase 2: Sensor telemetry (depends on assets + failures)
+    # ------------------------------------------------------------------ #
+    sensors_df = pd.DataFrame()
+    readings_df = pd.DataFrame()
+    if not args.no_sensors:
+        log.info("Generating sensor catalog + telemetry", extra={"phase": "sensors"})
+        sensors_df, readings_df = generate_sensors(
+            make_rng(master_rng, 10), assets_df, failures_df, run_date,
+            cfg.section("sensors"))
+        sensors_df.to_csv(output_dir / "sensors.csv", index=False)
+        readings_df.to_csv(output_dir / "sensor_readings.csv", index=False)
+        log.info("Sensor telemetry complete",
+                 extra={"phase": "sensors", "rows": len(readings_df)})
 
     # ------------------------------------------------------------------ #
     # Validation
@@ -369,16 +430,30 @@ def main() -> None:
         "notifications": notifs_df,
         "work_orders": wo_df,
         "failure_events": failures_df,
+        "weather": weather_df,
+        "production": production_df,
+        "asset_connections": connectivity_df,
+        "sensors": sensors_df,
+        "sensor_readings": readings_df,
     }
     _validate_foreign_keys(dfs)
 
     # ------------------------------------------------------------------ #
     # SUMMARY
     # ------------------------------------------------------------------ #
-    print("  Writing SUMMARY.md …")
+    log.info("Writing SUMMARY.md", extra={"phase": "summary"})
     para = _write_summary(dfs, output_dir, run_date)
 
+    # ------------------------------------------------------------------ #
+    # SQLite database (optional)
+    # ------------------------------------------------------------------ #
+    if args.build_db:
+        log.info("Building SQLite database", extra={"phase": "db"})
+        db_path = build_database(output_dir, cfg.get("database.sqlite_path"))
+        print(f"  SQLite DB: {db_path}")
+
     elapsed = time.perf_counter() - t0
+    log.info("Generation complete", extra={"phase": "end", "elapsed_s": round(elapsed, 1)})
     print(f"\nDone in {elapsed:.1f}s")
     print(f"\nOutput: {output_dir / 'SUMMARY.md'}\n")
     print(para)

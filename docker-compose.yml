@@ -1,0 +1,24 @@
+# Crestmount Refinery — full stack (generator + agents + dashboard)
+services:
+  generator:
+    build: ./data_generator
+    image: crestmount-generator:latest
+    container_name: crestmount-generator
+    volumes:
+      - ./data_generator/output:/app/output
+    command: >
+      sh -c "python generate_data.py --seed 42 --output-dir ./output &&
+             python run_agents.py --db ./output/crestmount.db --build-db --output-dir ./output"
+
+  dashboard:
+    build: ./data_generator
+    image: crestmount-generator:latest
+    container_name: crestmount-dashboard
+    depends_on:
+      generator:
+        condition: service_completed_successfully
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data_generator/output:/app/output
+    command: streamlit run dashboard/app.py -- --db ./output/crestmount.db

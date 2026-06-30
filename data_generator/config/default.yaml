@@ -1,0 +1,106 @@
+# ==========================================================================
+# Crestmount Refinery — Synthetic Data Generator Configuration
+# ==========================================================================
+# All tunable parameters live here. The CLI flags (--seed, --output-dir)
+# override these values when provided. Existing generators keep their
+# hardcoded defaults for backward compatibility; new generators (sensors,
+# asset_connectivity, weather, production) read from this file.
+# ==========================================================================
+
+seed: 42
+output_dir: ./output
+run_date: null            # null = today (UTC date)
+
+# --------------------------------------------------------------------------
+# Entity volumes (row-count targets)
+# --------------------------------------------------------------------------
+volumes:
+  assets: 500
+  spare_parts: 5000
+  crews: 30
+  notifications_total: 12000
+  notifications_open: 2000
+  work_orders_inflight: 500
+  calendar_days: 730
+
+# --------------------------------------------------------------------------
+# Noise injection rates (used by notifications generator)
+# --------------------------------------------------------------------------
+noise:
+  severity_mismatch_rate: 0.15
+  false_positive_rate: 0.10
+  duplicate_rate: 0.05
+
+# --------------------------------------------------------------------------
+# Sensor / telemetry dataset (Phase 2)
+# --------------------------------------------------------------------------
+sensors:
+  # Only a subset of assets are instrumented (rotating + static equipment).
+  instrumented_asset_classes:
+    - centrifugal_pump
+    - reciprocating_pump
+    - compressor
+    - electrical_motor
+    - heat_exchanger
+    - fired_heater
+  sensors_per_asset: 4          # vibration, temperature, pressure, flow
+  reading_frequency: hourly     # hourly | daily
+  history_days: 30              # rolling window of high-fidelity data
+  anomaly_rate: 0.02            # fraction of readings flagged anomalous
+
+# --------------------------------------------------------------------------
+# Asset connectivity / P&ID graph (Phase 2)
+# --------------------------------------------------------------------------
+asset_connectivity:
+  avg_edges_per_asset: 3        # mean outgoing process connections per asset
+  feed_edges_per_unit: 2        # inter-unit feed connections
+
+# --------------------------------------------------------------------------
+# Weather dataset — West Texas climatology (Phase 2)
+# --------------------------------------------------------------------------
+weather:
+  days: 730
+  base_temp_c: 19.0             # annual mean
+  temp_amplitude_c: 13.0        # seasonal swing (peak summer ~32, winter ~6)
+  summer_storm_rate: 0.08       # probability of a storm day Jun–Aug
+  winter_freeze_rate: 0.05      # probability of a hard-freeze day Dec–Feb
+
+# --------------------------------------------------------------------------
+# Production / output dataset (Phase 2)
+# --------------------------------------------------------------------------
+production:
+  days: 730
+  design_capacity_bpd: 100000   # barrels per day
+  product_yields:               # volumetric yield fractions (sum ~ 1.0)
+    gasoline: 0.46
+    diesel: 0.28
+    jet_fuel: 0.10
+    lpg: 0.05
+    fuel_oil: 0.06
+    other: 0.05
+
+# --------------------------------------------------------------------------
+# Agent framework (Phase 3)
+# --------------------------------------------------------------------------
+agents:
+  # Triage agent weights for priority scoring
+  triage:
+    weight_criticality: 0.40
+    weight_severity: 0.30
+    weight_age: 0.15
+    weight_source: 0.15
+    t1_target_sla_hours: 24
+    t2_target_sla_hours: 72
+  # Evaluation harness
+  eval:
+    held_out_fraction: 0.20     # fraction of open notifications held out for eval
+
+# --------------------------------------------------------------------------
+# Infrastructure
+# --------------------------------------------------------------------------
+database:
+  sqlite_path: ./output/crestmount.db
+
+logging:
+  level: INFO                   # DEBUG | INFO | WARNING | ERROR
+  format: structured            # structured | plain

@@ -1,6 +1,6 @@
 # SUMMARY — Crestmount Refinery Synthetic Dataset
 
-> Generated on 2026-05-12. Seed: (stored in run config).
+> Generated on 2026-06-30. Seed: (stored in run config).
 
 ## Row counts
 
@@ -16,6 +16,11 @@
 | notifications (open backlog) | 1869 |
 | work_orders | 8565 |
 | failure_events | 1200 |
+| sensors | 940 |
+| sensor_readings | 676800 |
+| asset_connections | 1581 |
+| weather | 730 |
+| production | 730 |
 
 ## The bottleneck in numbers
 
@@ -70,16 +75,16 @@
 
 | notification_id | asset_id | raised_at | source | observed_severity | raw_text |
 |---|---|---|---|---|---|
-| NTF-0010001 | AST-00342 | 2026-02-11 | sensor | 2 | Coupling guard on AST-00342 warm — possible misalignment.… |
-| NTF-0010002 | AST-00374 | 2026-02-11 | operator | 4 | After last PM on AST-00374, vibration has been slightly elevated. Coupling align… |
-| NTF-0010003 | AST-00447 | 2026-02-11 | sensor | 1 | AST-00447 showing some deterioration — unclear if structural or cosmetic.… |
-| NTF-0010004 | AST-00232 | 2026-02-11 | operator | 5 | Operator reported unusual noise from AST-00232 area. Investigated — noise was fr… |
-| NTF-0010005 | AST-00346 | 2026-02-11 | operator | 2 | Abnormal noise from AST-00346 bearing area — grinding / rumbling sound noted by … |
-| NTF-0010006 | AST-00217 | 2026-02-11 | operator | 4 | Heat duty dropping on AST-00217 — clean up required.… |
-| NTF-0010007 | AST-00259 | 2026-02-11 | operator | 4 | Inspection crew found external corrosion on AST-00259 in isolation valve. Corros… |
-| NTF-0010008 | AST-00291 | 2026-02-11 | sensor | 1 | Paint breakdown and rust observed on AST-00291 during walkaround. Surface prepar… |
-| NTF-0010009 | AST-00146 | 2026-02-11 | inspection_round | 5 | Operator found fluid on ground under AST-00146 in flare. Appears to be a flange … |
-| NTF-0010011 | AST-00176 | 2026-02-11 | operator | 4 | AST-00176 showing a seep at the body-to-bonnet joint. Flagged by inspection on r… |
+| NTF-0010001 | AST-00342 | 2026-04-01 | sensor | 2 | Coupling guard on AST-00342 warm — possible misalignment.… |
+| NTF-0010002 | AST-00374 | 2026-04-01 | operator | 4 | After last PM on AST-00374, vibration has been slightly elevated. Coupling align… |
+| NTF-0010003 | AST-00447 | 2026-04-01 | sensor | 1 | AST-00447 showing some deterioration — unclear if structural or cosmetic.… |
+| NTF-0010004 | AST-00232 | 2026-04-01 | operator | 5 | Operator reported unusual noise from AST-00232 area. Investigated — noise was fr… |
+| NTF-0010005 | AST-00346 | 2026-04-01 | operator | 2 | Abnormal noise from AST-00346 bearing area — grinding / rumbling sound noted by … |
+| NTF-0010006 | AST-00217 | 2026-04-01 | operator | 4 | Heat duty dropping on AST-00217 — clean up required.… |
+| NTF-0010007 | AST-00259 | 2026-04-01 | operator | 4 | Inspection crew found external corrosion on AST-00259 in isolation valve. Corros… |
+| NTF-0010008 | AST-00291 | 2026-04-01 | sensor | 1 | Paint breakdown and rust observed on AST-00291 during walkaround. Surface prepar… |
+| NTF-0010009 | AST-00146 | 2026-04-01 | inspection_round | 5 | Operator found fluid on ground under AST-00146 in flare. Appears to be a flange … |
+| NTF-0010011 | AST-00176 | 2026-04-01 | operator | 4 | AST-00176 showing a seep at the body-to-bonnet joint. Flagged by inspection on r… |
 
 ## Criticality distribution (assets)
 

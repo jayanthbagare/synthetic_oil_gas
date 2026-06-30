@@ -9,8 +9,13 @@ dist/
 build/
 *.egg
 
-# Generated data — never commit CSVs
+# Generated data — never commit CSVs or the DB
 data_generator/output/*.csv
+data_generator/output/*.db
+data_generator/output/agent_eval_report.md
+
+# Docker
+*.pid
 
 # Test / coverage artefacts
 .pytest_cache/

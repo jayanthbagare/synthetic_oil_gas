@@ -11,11 +11,14 @@ dependencies = [
     "numpy>=1.26",
     "pandas>=2.2",
     "faker>=24.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+agents = []
+dashboard = ["streamlit>=1.30", "plotly>=5.18"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["generators*"]
+include = ["generators*", "infra*", "agents*"]
